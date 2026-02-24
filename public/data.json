@@ -1,0 +1,25 @@
+[
+  {
+    "name": "AVANGAR",
+    "rating": 18400,
+    "players": [
+      { "name": "Sh1ro", "role": "Снайпер" },
+      { "name": "Ax1Le", "role": "Рифлер" },
+      { "name": "Hobbit", "role": "Капитан" },
+      { "name": "Interz", "role": "Саппорт" },
+      { "name": "n0rb3r7", "role": "Рифлер" }
+    ]
+  },
+  {
+    "name": "NAVI",
+    "rating": 17250,
+    "players": [
+      { "name": "s1mple", "role": "Снайпер" },
+      { "name": "b1t", "role": "Рифлер" },
+      { "name": "Aleksib", "role": "IGL" },
+      { "name": "iM", "role": "Рифлер" },
+      { "name": "jL", "role": "Опорник" }
+    ]
+  }
+  // ... остальные команды
+]
