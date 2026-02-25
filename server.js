@@ -185,3 +185,10 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+// Удаление команды
+app.delete('/teams/:id', (req, res) => {
+    const id = parseInt(req.params.id);
+    teams = teams.filter(t => t.id !== id);
+    broadcastUpdate();
+    res.status(204).end();
+});
