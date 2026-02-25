@@ -1,129 +1,82 @@
 const express = require('express');
+const http = require('http');
 const WebSocket = require('ws');
-const path = require('path');
-const fs = require('fs');
+const cors = require('cors');
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Render задаёт порт через переменную окружения
-
-// Раздаём статические файлы из папки public
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 app.use(express.json());
 
-// Путь к файлу с данными
-const DATA_FILE = path.join(__dirname, 'data.json');
-
-// Функция чтения данных (если файла нет, создаём с начальными данными)
-function readData() {
-    try {
-        const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-        return JSON.parse(raw);
-    } catch (err) {
-        // Начальные данные (можно изменить)
-        const defaultData = [
-            {
-                name: 'AVANGAR',
-                rating: 18400,
-                players: [
-                    { name: 'Sh1ro', role: 'Снайпер' },
-                    { name: 'Ax1Le', role: 'Рифлер' },
-                    { name: 'Hobbit', role: 'Капитан' },
-                    { name: 'Interz', role: 'Саппорт' },
-                    { name: 'n0rb3r7', role: 'Рифлер' }
-                ]
-            },
-            {
-                name: 'NAVI',
-                rating: 17250,
-                players: [
-                    { name: 's1mple', role: 'Снайпер' },
-                    { name: 'b1t', role: 'Рифлер' },
-                    { name: 'Aleksib', role: 'IGL' },
-                    { name: 'iM', role: 'Рифлер' },
-                    { name: 'jL', role: 'Опорник' }
-                ]
-            },
-            {
-                name: 'Virtus.pro',
-                rating: 16320,
-                players: [
-                    { name: 'Jame', role: 'Снайпер' },
-                    { name: 'FL1T', role: 'Рифлер' },
-                    { name: 'fame', role: 'Рифлер' },
-                    { name: 'n0rb3r7', role: 'Рифлер' },
-                    { name: 'KaiR0N-', role: 'Саппорт' }
-                ]
-            },
-            {
-                name: 'Team Spirit',
-                rating: 15980,
-                players: [
-                    { name: 'chopper', role: 'Капитан' },
-                    { name: 'zont1x', role: 'Рифлер' },
-                    { name: 'donk', role: 'Рифлер' },
-                    { name: 'sh1ro', role: 'Снайпер' },
-                    { name: 'magixx', role: 'Саппорт' }
-                ]
-            },
-            {
-                name: 'forZe',
-                rating: 14750,
-                players: [
-                    { name: 'shalfey', role: 'Капитан' },
-                    { name: 'Krad', role: 'Рифлер' },
-                    { name: 'ganny', role: 'Снайпер' },
-                    { name: 'tmv', role: 'Саппорт' },
-                    { name: 'zorte', role: 'Рифлер' }
-                ]
-            }
-        ];
-        fs.writeFileSync(DATA_FILE, JSON.stringify(defaultData, null, 2));
-        return defaultData;
-    }
-}
-
-// Функция записи данных
-function writeData(data) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-// Маршрут для получения данных
-app.get('/data', (req, res) => {
-    const data = readData();
-    res.json(data);
-});
-
-// Маршрут для обновления данных (POST)
-app.post('/data', (req, res) => {
-    const newData = req.body;
-    if (!Array.isArray(newData)) {
-        return res.status(400).json({ error: 'Данные должны быть массивом' });
-    }
-    writeData(newData);
-    broadcastData(newData); // отправляем всем клиентам
-    res.json({ status: 'ok' });
-});
-
-// Запускаем HTTP-сервер
-const server = app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
-});
-
-// Создаём WebSocket-сервер
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// Рассылка данных всем подключённым клиентам
-function broadcastData(data) {
-    const message = JSON.stringify({ type: 'update', data });
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
-    });
+// Хранилище данных (в памяти) — при перезапуске всё сбросится.
+// Для постоянства используйте базу данных (MongoDB, PostgreSQL).
+let teams = [
+  { id: 1, name: 'Spacer Gaming', rating: 0.20, players: [
+    { name: 'No', role: 'No' },
+    { name: 'No', role: 'No' },
+    { name: 'No', role: 'No' },
+    { name: 'No-, role: 'No' },
+    { name: 'No', role: 'No' },
+  ]}
+];
+
+let matches = [];
+let users = []; // { name, pass, role }
+
+// ID для новых матчей
+let nextMatchId = 1;
+
+// WebSocket: рассылка обновлений всем клиентам
+function broadcastUpdate() {
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({ type: 'update' }));
+    }
+  });
 }
 
-// Обработка подключений WebSocket
-wss.on('connection', (ws) => {
-    console.log('Новый клиент подключился');
-    ws.on('close', () => console.log('Клиент отключился'));
+// API endpoints
+app.get('/data', (req, res) => res.json(teams));
+
+app.get('/matches', (req, res) => res.json(matches));
+
+app.post('/matches', (req, res) => {
+  const match = { id: nextMatchId++, ...req.body };
+  matches.push(match);
+  broadcastUpdate();
+  res.status(201).json(match);
+});
+
+app.delete('/matches/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  matches = matches.filter(m => m.id !== id);
+  broadcastUpdate();
+  res.status(204).end();
+});
+
+// Регистрация
+app.post('/register', (req, res) => {
+  const { name, pass } = req.body;
+  if (users.find(u => u.name === name)) {
+    return res.status(400).json({ error: 'Name exists' });
+  }
+  const role = name === 'Quantum' ? 'Лидер' : 'Игрок';
+  const newUser = { name, pass, role };
+  users.push(newUser);
+  res.status(201).json({ name, role }); // не возвращаем пароль
+});
+
+// Вход
+app.post('/login', (req, res) => {
+  const { name, pass } = req.body;
+  const user = users.find(u => u.name === name && u.pass === pass);
+  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+  res.json({ name: user.name, role: user.role });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
