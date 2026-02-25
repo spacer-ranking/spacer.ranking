@@ -219,3 +219,9 @@ app.delete('/teams/:id', (req, res) => {
     broadcastUpdate();
     res.status(204).end();
 });
+// Проверка существования пользователя
+app.post('/check-user', (req, res) => {
+    const { name } = req.body;
+    const user = users.find(u => u.name === name);
+    res.json({ exists: !!user });
+});
