@@ -192,3 +192,30 @@ app.delete('/teams/:id', (req, res) => {
     broadcastUpdate();
     res.status(204).end();
 });
+// server.js (дополнить)
+app.post('/register', (req, res) => {
+    const { name, pass } = req.body;
+    if (users.find(u => u.name === name)) {
+        return res.status(400).json({ error: 'Имя уже занято' });
+    }
+    const role = name === 'Quantum' ? 'Лидер' : 'Игрок';
+    const newUser = { name, pass, role };
+    users.push(newUser);
+    res.status(201).json({ name, role });
+});
+
+app.post('/login', (req, res) => {
+    const { name, pass } = req.body;
+    const user = users.find(u => u.name === name && u.pass === pass);
+    if (!user) {
+        return res.status(401).json({ error: 'Неверное имя или пароль' });
+    }
+    res.json({ name: user.name, role: user.role });
+});
+
+app.delete('/teams/:id', (req, res) => {
+    const id = parseInt(req.params.id);
+    teams = teams.filter(t => t.id !== id);
+    broadcastUpdate();
+    res.status(204).end();
+});
