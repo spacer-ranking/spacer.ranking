@@ -11,6 +11,7 @@
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Стили полностью сохранены из предыдущей версии */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background-color: #121212;
@@ -626,14 +627,14 @@
     (function() {
         // ---------- ПЕРЕМЕННЫЕ ----------
         const container = document.getElementById('teamsContainer');
-        let teams = [];              // будут загружены с сервера
-        let matches = [];            // загружаются с сервера или localStorage
+        let teams = [];
+        let matches = [];
         let currentUser = null;
-        let users = [];              // локальное хранилище пользователей (пароли, роли)
+        let users = [];
         let currentCode = null;
         let pendingUser = null;
 
-        // ---------- ЗАГРУЗКА КОМАНД С СЕРВЕРА (как в первом коде) ----------
+        // ---------- ЗАГРУЗКА КОМАНД С СЕРВЕРА ----------
         function fetchTeams() {
             fetch('/data')
                 .then(response => {
@@ -646,7 +647,6 @@
                 })
                 .catch(err => {
                     console.warn('Не удалось загрузить команды с сервера, используем тестовые данные');
-                    // Тестовые данные на случай отсутствия сервера
                     teams = [
                         { id: 1, name: 'ZHANG', rating: 0.20, players: [
                             { name: 'FA1REXXX', role: 'Капитан' },
@@ -664,7 +664,7 @@
                 });
         }
 
-        // ---------- ЗАГРУЗКА МАТЧЕЙ (с сервера или localStorage) ----------
+        // ---------- ЗАГРУЗКА МАТЧЕЙ ----------
         function fetchMatches() {
             fetch('/matches')
                 .then(res => {
@@ -676,43 +676,70 @@
                     renderMatches();
                 })
                 .catch(() => {
-                    // если сервер недоступен, грузим из localStorage
                     const saved = localStorage.getItem('spacer_matches');
                     matches = saved ? JSON.parse(saved) : [];
                     renderMatches();
                 });
         }
 
-        // ---------- СОХРАНЕНИЕ МАТЧЕЙ НА СЕРВЕР (POST/DELETE) ----------
-        function saveMatchToServer(matchData) {
+        // ---------- СОХРАНЕНИЕ МАТЧА НА СЕРВЕР (или локально) ----------
+        function saveMatch(matchData) {
+            // Добавляем уникальный id, если его нет
+            if (!matchData.id) matchData.id = Date.now().toString();
+
             fetch('/matches', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(matchData)
-            }).catch(() => {
-                // офлайн-режим: сохраняем в localStorage
+            })
+            .then(() => {
+                // После успешной отправки на сервер, можно сразу добавить в локальный массив
+                // или дождаться WebSocket уведомления. Для надёжности добавим локально.
                 matches.push(matchData);
                 localStorage.setItem('spacer_matches', JSON.stringify(matches));
                 renderMatches();
                 showUploadNotification();
+                // Оповестить другие вкладки (если нет WebSocket)
+                if (window.broadcastChannel) window.broadcastChannel.postMessage('matches_updated');
+            })
+            .catch(() => {
+                // Офлайн: сохраняем локально
+                matches.push(matchData);
+                localStorage.setItem('spacer_matches', JSON.stringify(matches));
+                renderMatches();
+                showUploadNotification();
+                if (window.broadcastChannel) window.broadcastChannel.postMessage('matches_updated');
             });
         }
 
-        function deleteMatchFromServer(matchNumber) {
-            const index = matches.length - matchNumber; // матчи отображаются в обратном порядке
-            if (index < 0 || index >= matches.length) return;
-            const matchId = matches[index].id; // предполагаем, что у матча есть id
+        // ---------- УДАЛЕНИЕ МАТЧА С СЕРВЕРА ----------
+        function deleteMatch(matchId) {
             fetch(`/matches/${matchId}`, { method: 'DELETE' })
+                .then(() => {
+                    // После успешного удаления на сервере, удаляем локально
+                    const index = matches.findIndex(m => m.id === matchId);
+                    if (index !== -1) {
+                        matches.splice(index, 1);
+                        localStorage.setItem('spacer_matches', JSON.stringify(matches));
+                        renderMatches();
+                        showDeleteNotification();
+                        if (window.broadcastChannel) window.broadcastChannel.postMessage('matches_updated');
+                    }
+                })
                 .catch(() => {
-                    // офлайн: удаляем локально
-                    matches.splice(index, 1);
-                    localStorage.setItem('spacer_matches', JSON.stringify(matches));
-                    renderMatches();
-                    showDeleteNotification();
+                    // Офлайн: удаляем локально
+                    const index = matches.findIndex(m => m.id === matchId);
+                    if (index !== -1) {
+                        matches.splice(index, 1);
+                        localStorage.setItem('spacer_matches', JSON.stringify(matches));
+                        renderMatches();
+                        showDeleteNotification();
+                        if (window.broadcastChannel) window.broadcastChannel.postMessage('matches_updated');
+                    }
                 });
         }
 
-        // ---------- WEBSOCKET (как в первом коде) ----------
+        // ---------- WEBSOCKET ----------
         let ws = null;
         function initWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -723,27 +750,25 @@
                 try {
                     const message = JSON.parse(event.data);
                     if (message.type === 'update') {
-                        // Сервер сообщает, что данные изменились – перезагружаем
                         fetchTeams();
                         fetchMatches();
                     }
                 } catch (e) {}
             };
             ws.onerror = (err) => {
-                console.warn('WebSocket error, используем localStorage/broadcast');
-                // Эмуляция синхронизации между вкладками через BroadcastChannel
+                console.warn('WebSocket error, используем BroadcastChannel');
                 if (!window.broadcastChannel) {
                     window.broadcastChannel = new BroadcastChannel('spacer_sync');
                     window.broadcastChannel.onmessage = (e) => {
                         if (e.data === 'matches_updated') {
-                            fetchMatches(); // обновить матчи из localStorage
+                            fetchMatches(); // обновить из localStorage
                         }
                     };
                 }
             };
         }
 
-        // ---------- РЕНДЕР КОМАНД (адаптировано из второго кода) ----------
+        // ---------- РЕНДЕР КОМАНД ----------
         function renderTeams() {
             const sorted = [...teams].sort((a, b) => b.rating - a.rating);
             container.innerHTML = '';
@@ -794,7 +819,8 @@
                 container.innerHTML = '<div class="match-item" style="justify-content: center;">Пока нет матчей</div>';
                 return;
             }
-            const sortedMatches = [...matches].reverse();
+            // Сортируем по id (в обратном порядке, чтобы новые были сверху)
+            const sortedMatches = [...matches].sort((a,b) => b.id - a.id);
             sortedMatches.forEach((m, idx) => {
                 const matchDiv = document.createElement('div');
                 matchDiv.className = 'match-item';
@@ -829,7 +855,7 @@
             });
         }
 
-        // ---------- НОВОСТИ (статика) ----------
+        // ---------- НОВОСТИ ----------
         function renderNews() {
             const news = [
                 { title: 'Открытие сайта', date: '2026-02-17', desc: 'На данном сайте сможете увидеть историю матчей, рейтинг команд и статистику игроков.' },
@@ -849,7 +875,7 @@
             });
         }
 
-        // ---------- АВТОРИЗАЦИЯ (локальная, с ролью лидера для Quantum) ----------
+        // ---------- АВТОРИЗАЦИЯ ----------
         function loadUsers() {
             const saved = localStorage.getItem('spacer_users');
             users = saved ? JSON.parse(saved) : [];
@@ -872,10 +898,8 @@
             }
         }
 
-        // Генерация одноразового кода
         function generateCode() { return Math.floor(1000 + Math.random() * 9000).toString(); }
 
-        // Уведомления
         function showUploadNotification() {
             const n = document.getElementById('uploadNotification');
             n.style.display = 'flex';
@@ -946,7 +970,6 @@
 
         openBtn.addEventListener('click', () => {
             if (currentUser) {
-                // Выход
                 currentUser = null;
                 updateUserWidget();
             } else {
@@ -961,7 +984,6 @@
             codeInput.value = '';
         });
 
-        // Регистрация
         registerSubmit.addEventListener('click', () => {
             const name = regName.value.trim();
             const pass = regPass.value.trim();
@@ -986,7 +1008,6 @@
             codeBlock.style.display = 'block';
         });
 
-        // Вход
         loginSubmit.addEventListener('click', () => {
             const name = loginName.value.trim();
             const pass = loginPass.value.trim();
@@ -1011,7 +1032,6 @@
             codeBlock.style.display = 'block';
         });
 
-        // Подтверждение кода
         verifyBtn.addEventListener('click', () => {
             if (codeInput.value !== currentCode) {
                 document.getElementById('codeErrorText').innerText = 'Неверный код';
@@ -1036,7 +1056,7 @@
         const uploadModal = document.getElementById('uploadMatchModal');
         const uploadBtn = document.getElementById('uploadMatchBtn');
         const closeUpload = document.getElementById('closeUploadModal');
-        const saveMatch = document.getElementById('saveMatchBtn');
+        const saveMatchBtn = document.getElementById('saveMatchBtn');
         const matchTeam1 = document.getElementById('matchTeam1');
         const matchTeam2 = document.getElementById('matchTeam2');
         const matchScore = document.getElementById('matchScore');
@@ -1044,23 +1064,21 @@
 
         uploadBtn.addEventListener('click', () => uploadModal.classList.add('active-modal'));
         closeUpload.addEventListener('click', () => uploadModal.classList.remove('active-modal'));
-        saveMatch.addEventListener('click', () => {
+        saveMatchBtn.addEventListener('click', () => {
             if (!matchTeam1.value || !matchTeam2.value || !matchScore.value || !matchWinner.value) {
                 alert('Заполните все поля');
                 return;
             }
             const newMatch = {
+                id: Date.now().toString(), // уникальный id
                 team1: matchTeam1.value,
                 team2: matchTeam2.value,
                 score: matchScore.value,
                 winner: matchWinner.value
             };
-            // Отправляем на сервер или сохраняем локально
-            saveMatchToServer(newMatch);
-            // Очистка
+            saveMatch(newMatch);
             matchTeam1.value = matchTeam2.value = matchScore.value = matchWinner.value = '';
             uploadModal.classList.remove('active-modal');
-            // Если сервер недоступен, вызов из saveMatchToServer уже обновил UI
         });
 
         // ---------- УДАЛЕНИЕ МАТЧА ----------
@@ -1084,32 +1102,31 @@
                 setTimeout(() => document.getElementById('deleteError').style.display = 'none', 3000);
                 return;
             }
-            deleteMatchFromServer(num);
+            // Сортируем по убыванию id (новые сверху) и берём нужный индекс
+            const sorted = [...matches].sort((a,b) => b.id - a.id);
+            const matchToDelete = sorted[num - 1];
+            if (matchToDelete) {
+                deleteMatch(matchToDelete.id);
+            } else {
+                document.getElementById('deleteErrorText').innerText = 'Матч не найден';
+                document.getElementById('deleteError').style.display = 'flex';
+                setTimeout(() => document.getElementById('deleteError').style.display = 'none', 3000);
+            }
             deleteModal.classList.remove('active-modal');
         });
 
-        // ---------- ЭМУЛЯЦИЯ СИНХРОНИЗАЦИИ ПРИ ЛОКАЛЬНЫХ ИЗМЕНЕНИЯХ ----------
+        // ---------- СИНХРОНИЗАЦИЯ МЕЖДУ ВКЛАДКАМИ ----------
         window.addEventListener('storage', (e) => {
             if (e.key === 'spacer_matches') {
-                fetchMatches(); // обновить из localStorage
+                fetchMatches();
             }
         });
-        // Для broadcast (если WebSocket не работает)
-        if (window.broadcastChannel) {
+        if (!window.broadcastChannel) {
+            window.broadcastChannel = new BroadcastChannel('spacer_sync');
             window.broadcastChannel.onmessage = (e) => {
                 if (e.data === 'matches_updated') fetchMatches();
             };
         }
-
-        // Переопределим локальные сохранения, чтобы оповещать другие вкладки
-        const originalSave = saveMatchToServer;
-        saveMatchToServer = (match) => {
-            originalSave(match);
-            if (!navigator.onLine) { // если офлайн, имитируем обновление
-                if (window.broadcastChannel) window.broadcastChannel.postMessage('matches_updated');
-                showUploadNotification();
-            }
-        };
     })();
 </script>
 </body>
