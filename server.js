@@ -40,7 +40,7 @@ app.post('/teams', (req, res) => {
     const newTeam = {
         id: nextTeamId++,
         name,
-        rating: parseInt(rating) || 1000,
+        rating: parseInt(rating) || 0,
         players: []
     };
     teams.push(newTeam);
