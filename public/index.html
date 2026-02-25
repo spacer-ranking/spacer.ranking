@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>Spacer Ranking</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* все стили остаются без изменений (из предыдущего сообщения) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0d1117;
+            color: #e0e0e0;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+        .wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            background: #161c24;
+            border-radius: 40px;
+            padding: 4px;
+            border: 1px solid #2b3645;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #8896b0;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 10px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: inherit;
+        }
+        .tab-btn i { margin-right: 8px; }
+        .tab-btn.active {
+            background: #1e2732;
+            color: #fff;
+            border: 1px solid #4f6f9f;
+        }
+        .user-widget {
+            background: #161c24;
+            border: 1px solid #2b3645;
+            border-radius: 40px;
+            padding: 5px 15px 5px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .user-greeting { font-weight: 500; color: #b0d0ff; }
+        .auth-btn {
+            background: #2f4b7c;
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .auth-btn:hover { background: #3f5f9f; }
+        .tab-pane { display: none; }
+        .tab-pane.active-pane { display: block; }
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #232e3c;
+            padding-bottom: 10px;
+        }
+        .card {
+            background: #161c24;
+            border-radius: 30px;
+            padding: 24px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+        .teams-grid { display: flex; flex-direction: column; gap: 8px; }
+        .team-row {
+            background: #1e2732;
+            border-radius: 24px;
+            border: 1px solid #2b3645;
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .team-row:hover { border-color: #4f6f9f; }
+        .team-rank {
+            width: 60px;
+            font-weight: 700;
+            font-size: 18px;
+            color: #ffb347;
+        }
+        .team-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .team-name {
+            font-weight: 600;
+            font-size: 18px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .team-name i {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(145deg, #2f4b7c, #1f3557);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #ffb85c;
+            font-style: normal;
+            text-transform: uppercase;
+        }
+        .team-rating {
+            font-weight: 700;
+            font-size: 18px;
+            color: #b0d0ff;
+            text-align: right;
+        }
+        .team-rating small { font-size: 12px; color: #6d83a4; margin-left: 4px; }
+        .roster-container {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.25s;
+            background: #131b24;
+            border-radius: 0 0 24px 24px;
+            padding: 0 16px;
+            margin-top: 0;
+        }
+        .roster-container.open {
+            max-height: 450px;
+            opacity: 1;
+            padding: 16px 16px 20px 16px;
+            border-top: 1px solid #2d4055;
+        }
+        .player-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: #1d2a36;
+            border-radius: 18px;
+            margin-bottom: 8px;
+        }
+        .player-name {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+        }
+        .player-name i { color: #7fb6c9; }
+        .player-role {
+            background: #2b3e4e;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #b8d4ff;
+        }
+        .add-player-btn {
+            background: transparent;
+            border: 1px solid #4f6f9f;
+            color: #b0d0ff;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .add-player-btn:hover {
+            background: #2b3645;
+        }
+        .create-team-btn {
+            background: #2f4b7c;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+        .create-team-btn:hover { background: #3f5f9f; }
+        .matches-list { display: flex; flex-direction: column; gap: 12px; }
+        .match-item {
+            background: #1e2732;
+            border-radius: 24px;
+            border: 1px solid #2b3645;
+            padding: 18px 20px;
+        }
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2d4055;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+        .match-teams-compact {
+            display: flex;
+            gap: 15px;
+            font-weight: 600;
+            color: #b0d0ff;
+        }
+        .match-teams-compact span {
+            background: #1f2e33;
+            padding: 4px 12px;
+            border-radius: 40px;
+        }
+        .match-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            margin: 15px 0;
+        }
+        .match-team-block .match-team-name {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .match-team-name.winner-team { color: #ffb347; }
+        .match-score-block {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #0f1a20;
+            padding: 8px 20px;
+            border-radius: 40px;
+            border: 1px solid #4f6f9f;
+        }
+        .match-score-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #b0d0ff;
+        }
+        .match-score-number.winner { color: #ffb85c; }
+        .match-score-divider { font-size: 1.8rem; color: #4f6f9f; }
+        .match-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #2d4055;
+            padding-top: 10px;
+            font-size: 0.9rem;
+            color: #8f9bb5;
+        }
+        .match-number-badge i { margin-right: 5px; }
+        .matches-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .leader-btn, .danger-btn {
+            background: #1e2732;
+            border: 1px solid #4f6f9f;
+            color: #b0d0ff;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+            font-size: 1rem;
+        }
+        .leader-btn:hover { background: #2b3645; border-color: #6b8fbf; }
+        .danger-btn { border-color: #b54f4f; color: #ffb3b3; }
+        .danger-btn:hover { background: #3a2a2a; }
+        .upload-notification, .delete-notification {
+            background: #1e2732;
+            border-left: 4px solid #4f6f9f;
+            padding: 12px 20px;
+            border-radius: 40px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s;
+        }
+        .delete-notification { border-left-color: #b54f4f; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .news-grid { display: flex; flex-direction: column; gap: 15px; }
+        .news-item {
+            background: #1e2732;
+            border-radius: 24px;
+            border: 1px solid #2b3645;
+            padding: 20px;
+        }
+        .news-title { font-size: 1.4rem; font-weight: 600; color: #fff; margin-bottom: 8px; }
+        .news-date { color: #8f9bb5; margin-bottom: 10px; font-size: 0.9rem; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active-modal { display: flex; }
+        .modal-content {
+            background: #161c24;
+            border: 1px solid #2b3645;
+            border-radius: 30px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 35px black;
+        }
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            background: #1e2732;
+            border-radius: 40px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+        .auth-tab {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #8896b0;
+            font-weight: 600;
+            padding: 10px;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+        .auth-tab.active-auth { background: #2b3645; color: #fff; }
+        .modal-content input, .modal-content select {
+            width: 100%;
+            padding: 14px 18px;
+            margin: 8px 0;
+            border-radius: 40px;
+            border: 1px solid #2b3645;
+            background: #1e2732;
+            color: #fff;
+            font-size: 1rem;
+        }
+        .modal-content button {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border-radius: 40px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            background: #2f4b7c;
+            color: white;
+        }
+        .modal-content button:hover { background: #3f5f9f; }
+        .close-modal { background: #3a3a4a !important; }
+        .error-message {
+            background: #4d1f1f;
+            color: #ffb3b3;
+            padding: 10px;
+            border-radius: 40px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .code-info { color: #b0d0ff; margin: 15px 0; text-align: center; }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #5f7485;
+            border-top: 1px dashed #232e3c;
+            padding-top: 20px;
+        }
+        @media (max-width: 600px) {
+            .team-row { flex-wrap: wrap; }
+            .team-rank { width: auto; margin-right: 15px; }
+            .team-info { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="top-bar">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="home"><i class="fas fa-shield-alt"></i>Главная</button>
+            <button class="tab-btn" data-tab="matches"><i class="fas fa-crosshairs"></i>Матчи</button>
+            <button class="tab-btn" data-tab="news"><i class="fas fa-newspaper"></i>Новости</button>
+        </div>
+        <div class="user-widget" id="userWidget">
+            <span class="user-greeting" id="greetingText">Гость</span>
+            <button class="auth-btn" id="openAuthModalBtn"><i class="fas fa-sign-in-alt"></i> Вход</button>
+        </div>
+    </div>
+
+    <!-- Главная с командами -->
+    <div id="home" class="tab-pane active-pane">
+        <h2><i class="fas fa-trophy"></i> Рейтинг команд</h2>
+        <div class="card">
+            <div id="leaderTeamControls" style="display: none; margin-bottom: 15px;">
+                <button class="create-team-btn" id="createTeamBtn"><i class="fas fa-plus-circle"></i> Создать команду</button>
+            </div>
+            <div class="teams-grid" id="teamsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Матчи -->
+    <div id="matches" class="tab-pane">
+        <h2><i class="fas fa-clock"></i> История матчей</h2>
+        <div class="card" id="matchesCard">
+            <div id="uploadNotification" class="upload-notification" style="display: none;"><i class="fas fa-check-circle"></i> <span>Результат матча загружен</span></div>
+            <div id="deleteNotification" class="delete-notification" style="display: none;"><i class="fas fa-trash-alt"></i> <span>Матч удалён</span></div>
+            <div class="matches-list" id="matchesContainer"></div>
+            <div class="matches-actions" id="leaderActions" style="display: none;">
+                <button class="leader-btn" id="uploadMatchBtn"><i class="fas fa-upload"></i> Загрузить результат</button>
+                <button class="danger-btn" id="deleteMatchBtn"><i class="fas fa-trash-alt"></i> Удалить матч</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Новости -->
+    <div id="news" class="tab-pane">
+        <h2><i class="fas fa-bolt"></i> Последние новости</h2>
+        <div class="card">
+            <div class="news-grid" id="newsContainer"></div>
+        </div>
+    </div>
+    <footer>spacer.ranking</footer>
+</div>
+
+<!-- Модалка авторизации (без изменений) -->
+<div id="authModal" class="modal"><!-- содержимое как раньше --></div>
+
+<!-- Модалка создания команды -->
+<div id="createTeamModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color:#fff; margin-bottom:15px;">Создать команду</h3>
+        <input type="text" id="newTeamName" placeholder="Название команды">
+        <input type="number" id="newTeamRating" placeholder="Начальный рейтинг" value="0" step="1">
+        <button id="saveTeamBtn">Создать</button>
+        <button class="close-modal" id="closeCreateTeamModal">Отмена</button>
+    </div>
+</div>
+
+<!-- Модалка добавления игрока -->
+<div id="addPlayerModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color:#fff; margin-bottom:15px;">Добавить игрока</h3>
+        <input type="text" id="playerName" placeholder="Имя игрока">
+        <input type="text" id="playerRole" placeholder="Роль (например, Капитан)">
+        <button id="savePlayerBtn">Добавить</button>
+        <button class="close-modal" id="closeAddPlayerModal">Отмена</button>
+    </div>
+</div>
+
+<!-- Модалка загрузки матча (с выпадающими списками команд) -->
+<div id="uploadMatchModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color:#fff; margin-bottom:15px;">Загрузить результат</h3>
+        <select id="matchTeam1Select"></select>
+        <select id="matchTeam2Select"></select>
+        <input type="text" id="matchScore" placeholder="Счёт (13:7)">
+        <select id="matchWinnerSelect"></select>
+        <button id="saveMatchBtn">Сохранить</button>
+        <button class="close-modal" id="closeUploadModal">Отмена</button>
+    </div>
+</div>
+
+<!-- Модалка удаления матча (без изменений) -->
+<div id="deleteMatchModal" class="modal"><!-- ... --></div>
+
+<script>
+    (function() {
+        const API_BASE = '';          // замените на URL сервера
+        const WS_URL = undefined;
+
+        let teams = [];
+        let matches = [];
+        let currentUser = null;
+        let selectedTeamIdForPlayer = null; // для добавления игрока
+
+        // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
+        async function apiFetch(path, options = {}) {
+            const url = API_BASE ? API_BASE + path : path;
+            const res = await fetch(url, options);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        }
+
+        function showUploadNotification() { /* ... */ }
+        function showDeleteNotification() { /* ... */ }
+        function showLoginError(msg) { /* ... */ }
+        function showRegisterError(msg) { /* ... */ }
+        function showDeleteError(msg) { /* ... */ }
+
+        // ---------- ЗАГРУЗКА ДАННЫХ ----------
+        async function fetchTeams() {
+            try {
+                teams = await apiFetch('/data');
+            } catch (e) {
+                console.warn('Ошибка загрузки команд, начинаем с пустого списка');
+                teams = [];
+            }
+            renderTeams();
+            // обновить выпадающие списки в модалке матча
+            populateTeamSelects();
+        }
+
+        async function fetchMatches() {
+            try {
+                matches = await apiFetch('/matches');
+            } catch (e) {
+                const saved = localStorage.getItem('spacer_matches');
+                matches = saved ? JSON.parse(saved) : [];
+            }
+            renderMatches();
+        }
+
+        // ---------- РЕНДЕР КОМАНД ----------
+        function renderTeams() {
+            const container = document.getElementById('teamsContainer');
+            container.innerHTML = '';
+            const sorted = [...teams].sort((a,b) => b.rating - a.rating);
+            sorted.forEach((team, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.style.marginBottom = '8px';
+
+                const row = document.createElement('div');
+                row.className = 'team-row';
+
+                const rankSpan = document.createElement('div');
+                rankSpan.className = 'team-rank';
+                rankSpan.innerText = index === 0 ? '🥇 1' : index === 1 ? '🥈 2' : index === 2 ? '🥉 3' : (index+1).toString();
+
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'team-info';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'team-name';
+                const initial = team.name.charAt(0).toUpperCase();
+                nameSpan.innerHTML = `<i>${initial}</i>${team.name}`;
+
+                const ratingSpan = document.createElement('span');
+                ratingSpan.className = 'team-rating';
+                ratingSpan.innerHTML = `${team.rating}<small>pts</small>`;
+
+                infoDiv.appendChild(nameSpan);
+                infoDiv.appendChild(ratingSpan);
+                row.appendChild(rankSpan);
+                row.appendChild(infoDiv);
+
+                // Кнопка добавления игрока (только для лидера)
+                if (currentUser && currentUser.role === 'Лидер') {
+                    const addBtn = document.createElement('button');
+                    addBtn.className = 'add-player-btn';
+                    addBtn.innerHTML = '<i class="fas fa-user-plus"></i>';
+                    addBtn.title = 'Добавить игрока';
+                    addBtn.style.marginLeft = '10px';
+                    addBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        selectedTeamIdForPlayer = team.id;
+                        document.getElementById('addPlayerModal').classList.add('active-modal');
+                    };
+                    row.appendChild(addBtn);
+                }
+
+                const roster = document.createElement('div');
+                roster.className = 'roster-container';
+                if (team.players && team.players.length) {
+                    team.players.forEach(p => {
+                        const playerDiv = document.createElement('div');
+                        playerDiv.className = 'player-row';
+                        playerDiv.innerHTML = `
+                            <span class="player-name"><i class="fas fa-user-circle"></i> ${p.name}</span>
+                            <span class="player-role">${p.role}</span>
+                        `;
+                        roster.appendChild(playerDiv);
+                    });
+                } else {
+                    roster.innerHTML = '<div style="color:#8896b0; padding:8px;">Нет игроков</div>';
+                }
+
+                wrapper.appendChild(row);
+                wrapper.appendChild(roster);
+                container.appendChild(wrapper);
+
+                row.addEventListener('click', () => {
+                    roster.classList.toggle('open');
+                });
+            });
+        }
+
+        // Заполнение select'ов в модалке матча
+        function populateTeamSelects() {
+            const select1 = document.getElementById('matchTeam1Select');
+            const select2 = document.getElementById('matchTeam2Select');
+            const selectW = document.getElementById('matchWinnerSelect');
+            if (!select1) return;
+            select1.innerHTML = '';
+            select2.innerHTML = '';
+            selectW.innerHTML = '';
+            teams.forEach(t => {
+                const opt1 = document.createElement('option');
+                opt1.value = t.name;
+                opt1.textContent = t.name;
+                select1.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = t.name;
+                opt2.textContent = t.name;
+                select2.appendChild(opt2);
+
+                const optW = document.createElement('option');
+                optW.value = t.name;
+                optW.textContent = t.name;
+                selectW.appendChild(optW);
+            });
+        }
+
+        // ---------- РЕНДЕР МАТЧЕЙ ----------
+        function renderMatches() { /* без изменений */ }
+
+        // ---------- НОВОСТИ ----------
+        function renderNews() { /* без изменений */ }
+
+        // ---------- АВТОРИЗАЦИЯ ----------
+        function updateUserWidget() {
+            const greeting = document.getElementById('greetingText');
+            const authBtn = document.getElementById('openAuthModalBtn');
+            const leaderActions = document.getElementById('leaderActions');
+            const leaderTeamControls = document.getElementById('leaderTeamControls');
+            if (currentUser) {
+                greeting.innerText = `${currentUser.name} (${currentUser.role})`;
+                authBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Выйти';
+                leaderActions.style.display = currentUser.role === 'Лидер' ? 'flex' : 'none';
+                leaderTeamControls.style.display = currentUser.role === 'Лидер' ? 'block' : 'none';
+            } else {
+                greeting.innerText = 'Гость';
+                authBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Вход';
+                leaderActions.style.display = 'none';
+                leaderTeamControls.style.display = 'none';
+            }
+            // обновим рендер команд, чтобы показать/скрыть кнопки добавления игроков
+            renderTeams();
+        }
+
+        // API для пользователей (без изменений)
+        async function registerUser(name, pass) { return await apiFetch('/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, pass }) }); }
+        async function loginUser(name, pass) { return await apiFetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, pass }) }); }
+
+        // ---------- API ДЛЯ КОМАНД ----------
+        async function createTeamOnServer(name, rating) {
+            return await apiFetch('/teams', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, rating: parseInt(rating) || 0 })
+            });
+        }
+
+        async function addPlayerToTeam(teamId, playerName, playerRole) {
+            return await apiFetch(`/teams/${teamId}/players`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: playerName, role: playerRole })
+            });
+        }
+
+        // ---------- WEBSOCKET ----------
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = WS_URL || `${protocol}//${window.location.host}`;
+            const ws = new WebSocket(wsUrl);
+            ws.onmessage = (e) => {
+                try {
+                    const msg = JSON.parse(e.data);
+                    if (msg.type === 'update') {
+                        fetchTeams();
+                        fetchMatches();
+                    }
+                } catch (err) {}
+            };
+            ws.onerror = () => {
+                window.addEventListener('storage', (st) => {
+                    if (st.key === 'spacer_matches') fetchMatches();
+                });
+            };
+        }
+
+        // ---------- СОХРАНЕНИЕ/УДАЛЕНИЕ МАТЧЕЙ ----------
+        async function saveMatchOnServer(matchData) {
+            try {
+                await apiFetch('/matches', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(matchData)
+                });
+                showUploadNotification();
+            } catch (e) {
+                matches.push(matchData);
+                localStorage.setItem('spacer_matches', JSON.stringify(matches));
+                renderMatches();
+                showUploadNotification();
+            }
+        }
+
+        async function deleteMatchOnServer(matchNumber) { /* без изменений */ }
+
+        // ---------- ИНИЦИАЛИЗАЦИЯ ----------
+        fetchTeams();
+        fetchMatches();
+        renderNews();
+        updateUserWidget();
+        initWebSocket();
+
+        // ---------- ТАБЫ ----------
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active-pane'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active-pane');
+            });
+        });
+
+        // ---------- МОДАЛКА АВТОРИЗАЦИИ (без изменений) ----------
+        // ... (код из предыдущего решения)
+
+        // ---------- МОДАЛКА СОЗДАНИЯ КОМАНДЫ ----------
+        const createTeamModal = document.getElementById('createTeamModal');
+        document.getElementById('createTeamBtn').addEventListener('click', () => {
+            createTeamModal.classList.add('active-modal');
+        });
+        document.getElementById('closeCreateTeamModal').addEventListener('click', () => {
+            createTeamModal.classList.remove('active-modal');
+        });
+        document.getElementById('saveTeamBtn').addEventListener('click', async () => {
+            const name = document.getElementById('newTeamName').value.trim();
+            const rating = document.getElementById('newTeamRating').value;
+            if (!name) return alert('Введите название команды');
+            try {
+                await createTeamOnServer(name, rating);
+                document.getElementById('newTeamName').value = '';
+                document.getElementById('newTeamRating').value = '0';
+                createTeamModal.classList.remove('active-modal');
+                // данные обновятся по WebSocket
+            } catch (e) {
+                alert('Ошибка создания команды');
+            }
+        });
+
+        // ---------- МОДАЛКА ДОБАВЛЕНИЯ ИГРОКА ----------
+        const addPlayerModal = document.getElementById('addPlayerModal');
+        document.getElementById('closeAddPlayerModal').addEventListener('click', () => {
+            addPlayerModal.classList.remove('active-modal');
+        });
+        document.getElementById('savePlayerBtn').addEventListener('click', async () => {
+            const name = document.getElementById('playerName').value.trim();
+            const role = document.getElementById('playerRole').value.trim();
+            if (!name || !role) return alert('Заполните все поля');
+            if (!selectedTeamIdForPlayer) return;
+            try {
+                await addPlayerToTeam(selectedTeamIdForPlayer, name, role);
+                document.getElementById('playerName').value = '';
+                document.getElementById('playerRole').value = '';
+                addPlayerModal.classList.remove('active-modal');
+                selectedTeamIdForPlayer = null;
+            } catch (e) {
+                alert('Ошибка добавления игрока');
+            }
+        });
+
+        // ---------- ЗАГРУЗКА МАТЧА (с select) ----------
+        const uploadModal = document.getElementById('uploadMatchModal');
+        document.getElementById('uploadMatchBtn').addEventListener('click', () => {
+            populateTeamSelects(); // обновить списки перед показом
+            uploadModal.classList.add('active-modal');
+        });
+        document.getElementById('closeUploadModal').addEventListener('click', () => uploadModal.classList.remove('active-modal'));
+        document.getElementById('saveMatchBtn').addEventListener('click', () => {
+            const t1 = document.getElementById('matchTeam1Select').value;
+            const t2 = document.getElementById('matchTeam2Select').value;
+            const sc = document.getElementById('matchScore').value.trim();
+            const win = document.getElementById('matchWinnerSelect').value;
+            if (!t1 || !t2 || !sc || !win) return alert('Заполните все поля');
+            saveMatchOnServer({ team1: t1, team2: t2, score: sc, winner: win });
+            document.getElementById('matchScore').value = '';
+            uploadModal.classList.remove('active-modal');
+        });
+
+        // Остальные обработчики (удаление матча, закрытие по фону) без изменений
+    })();
+</script>
+</body>
+</html>
