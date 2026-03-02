@@ -1,0 +1,58 @@
+<h2><%= team.name %></h2>
+<div class="team-header">
+    <div class="team-avatar-large">
+        <% if (team.avatar) { %>
+            <img src="<%= team.avatar %>" alt="<%= team.name %>">
+        <% } else { %>
+            <div class="no-avatar-large"></div>
+        <% } %>
+    </div>
+    <div class="team-info">
+        <p>Рейтинг: <strong><%= team.rating %></strong></p>
+        <p>Создатель: <%= team.creator ? team.creator.username : 'неизвестно' %></p>
+    </div>
+</div>
+
+<h3>Состав команды</h3>
+<ul class="team-players">
+    <% team.Users.forEach(player => { %>
+    <li><%= player.username %></li>
+    <% }) %>
+</ul>
+
+<% if (user && user.role === 'leader') { %>
+    <h4>Добавить игрока</h4>
+    <form method="post" action="/teams/<%= team.id %>/add-player">
+        <input type="text" name="username" placeholder="Имя игрока" required>
+        <button type="submit">Добавить</button>
+    </form>
+    <a href="/teams/<%= team.id %>/edit" class="btn">Редактировать команду</a>
+<% } %>
+
+<h3>История матчей</h3>
+<% if (matches.length === 0) { %>
+    <p>У команды пока нет матчей.</p>
+<% } else { %>
+    <table class="matches-table">
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Команда 1</th>
+                <th>Счет</th>
+                <th>Команда 2</th>
+                <th>Создатель</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% matches.forEach(m => { %>
+            <tr>
+                <td><%= new Date(m.date).toLocaleDateString() %></td>
+                <td><%= m.team1.name %></td>
+                <td><%= m.team1Score %> : <%= m.team2Score %></td>
+                <td><%= m.team2.name %></td>
+                <td><%= m.creator.username %></td>
+            </tr>
+            <% }) %>
+        </tbody>
+    </table>
+<% } %>

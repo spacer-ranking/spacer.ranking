@@ -1,0 +1,23 @@
+<h2>История матчей</h2>
+<table class="matches-table">
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Команда 1</th>
+            <th>Счет</th>
+            <th>Команда 2</th>
+            <th>Создатель</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% matches.forEach(m => { %>
+        <tr>
+            <td><%= new Date(m.date).toLocaleDateString() %></td>
+            <td><a href="/teams/<%= m.team1.id %>"><%= m.team1.name %></a></td>
+            <td><%= m.team1Score %> : <%= m.team2Score %></td>
+            <td><a href="/teams/<%= m.team2.id %>"><%= m.team2.name %></a></td>
+            <td><%= m.creator.username %></td>
+        </tr>
+        <% }) %>
+    </tbody>
+</table>

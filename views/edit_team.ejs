@@ -1,0 +1,15 @@
+<h2>Редактировать команду: <%= team.name %></h2>
+<% if (locals.error) { %>
+    <p class="error"><%= error %></p>
+<% } %>
+<form method="post" enctype="multipart/form-data">
+    <div>
+        <label>Название команды:</label>
+        <input type="text" name="name" value="<%= team.name %>" required>
+    </div>
+    <div>
+        <label>Новый аватар (оставьте пустым, чтобы не менять):</label>
+        <input type="file" name="avatar" accept="image/*">
+    </div>
+    <button type="submit">Сохранить</button>
+</form>
