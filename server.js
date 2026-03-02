@@ -28,7 +28,7 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'cyber.rank.esports@gmail.com',
-        pass: 'ваш_пароль_от_почты' // Замените на реальный пароль от почты
+        pass: 'hnjw ymqy qbse fjrq' // Замените на реальный пароль от почты
     }
 });
 
